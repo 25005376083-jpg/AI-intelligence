@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and career progress",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "targetGoal": { "type": "string" },
+        "currentSkills": { "type": "array", "items": { "type": "string" } },
+        "mentorScore": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "ResumeAnalysis": {
+      "title": "ResumeAnalysis",
+      "description": "History of resume analyses",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string" },
+        "atsScore": { "type": "number" },
+        "analysis": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "atsScore"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User specific configuration and stats"
+    },
+    "/users/{userId}/analyses/{analysisId}": {
+      "schema": "ResumeAnalysis",
+      "description": "Historical record of resume analyses for a user"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "AI Career & Resume Mentor",
+  "description": "A comprehensive hackathon-ready mentor for university students to improve resumes, prepare for interviews, and generate career roadmaps using Gemini AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
