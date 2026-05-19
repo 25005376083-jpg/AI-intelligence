@@ -1,12 +1,11 @@
 // @ts-nocheck
-import { GoogleGenAI } from "@google/generative-ai";
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
-
-// Sahi class name: GoogleGenAI (G aur AI capital hain)
-const genAI = new GoogleGenAI({ apiKey });
+const genAI = new GoogleGenerativeAI(apiKey);
 
 export default async function handler(req: any, res: any) {
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -23,26 +22,27 @@ export default async function handler(req: any, res: any) {
     const { targetGoal, currentSkills } = req.body;
     
     if (!apiKey) {
-      return res.status(500).json({ error: "Gemini API Key missing on server." });
+      return res.status(500).json({ error: "API Key missing on Vercel." });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // Naya stable model use kar rahe hain jo fast hai
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const prompt = `You are an expert career counselor. Generate a structured step-by-step career roadmap for someone who wants to become a "${targetGoal}". Their current skills are: "${Array.isArray(currentSkills) ? currentSkills.join(', ') : currentSkills}". Provide the response ONLY in structured JSON format containing modules, topics, and estimated timelines. Do not add any markdown formatting like \`\`\`json.`;
+    const prompt = `You are an expert career counselor. Generate a structured step-by-step career roadmap for someone who wants to become a "${targetGoal}". Their current skills are: "${Array.isArray(currentSkills) ? currentSkills.join(', ') : currentSkills}". Provide the response ONLY in a valid JSON object string. Contain modules, topics, and estimated timelines. Do not add any markdown block wrappers like backticks or \`\`\`json text, just clean raw stringified JSON code.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let text = response.text().trim();
 
-    if (text.startsWith("```json")) {
-      text = text.substring(7, text.length - 3).trim();
-    } else if (text.startsWith("```")) {
-      text = text.substring(3, text.length - 3).trim();
-    }
+    // Kisi bhi kism ke markdown ticks ko makhsoos tareeqay se saaf karne ka safe filter
+    text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/, '').trim();
 
-    return res.status(200).json(JSON.parse(text));
+    // Sahi validation checklist parse test
+    const parsedData = JSON.parse(text);
+    return res.status(200).json(parsedData);
+
   } catch (error: any) {
-    console.error(error);
+    console.error("Vercel Runtime Error:", error);
     return res.status(500).json({ error: error.message || "Internal Server Error" });
   }
 }
