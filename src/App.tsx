@@ -264,24 +264,26 @@ const RoadmapView = () => {
   const [data, setData] = useState<RoadmapData | null>(null);
 
   const generate = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/generate-roadmap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          targetGoal: goal, 
-          currentSkills: currentSkills.split(',').map(s => s.trim()).filter(Boolean) 
-        })
-      });
-      const resData = await res.json();
-      setData(resData);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    // Yeh direct aapke naye Vercel api folder par request bhejega
+    const res = await fetch('/api/generate-roadmap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetGoal: goal,
+        currentSkills: currentSkills.split(',').map(s => s.trim()).filter(Boolean)
+      })
+    });
+    const resData = await res.json();
+    setData(resData);
+  } catch (e) {
+    console.error(e);
+    alert("Roadmap generate karne mein koi masala hua.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-20">

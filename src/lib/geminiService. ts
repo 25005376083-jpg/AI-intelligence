@@ -1,0 +1,28 @@
+import { GoogleGenAI } from "@google/generative-ai";
+
+// Vercel par jo key add ki thi, yeh wahan se auto-fetch karega
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!apiKey) {
+  console.error("Gemini API Key is missing! Check your environment variables.");
+}
+
+const genAI = new GoogleGenAI({ apiKey });
+
+export const generateRoadmapDirectly = async (targetRole: string, currentSkills: string) => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+    const prompt = `You are an expert career counselor. Generate a structured step-by-step career roadmap for someone who wants to become a "${targetRole}". Their current skills are: "${currentSkills}". Provide the response in a structured JSON format containing modules, topics, and estimated timelines.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    // JSON extract karne ke liye safe parse
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Error generating roadmap via Gemini:", error);
+    throw error;
+  }
+};
