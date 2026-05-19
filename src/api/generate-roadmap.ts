@@ -1,48 +1,66 @@
 // @ts-nocheck
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+export const config = {
+  runtime: 'edge', // Is se Vercel bina crash huye super-fast chalega
+};
 
-const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(apiKey);
-
-export default async function handler(req: any, res: any) {
-  // CORS Headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+export default async function handler(req: Request) {
+  // CORS Headers setting
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json',
+  };
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return new Response(null, { status: 200, headers });
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers });
   }
 
   try {
-    const { targetGoal, currentSkills } = req.body;
+    const { targetGoal, currentSkills } = await req.json();
     
+    // Server variables check
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: "API Key missing on Vercel." });
+      return new Response(JSON.stringify({ error: "Gemini API Key missing on Vercel." }), { status: 500, headers });
     }
 
-    // Naya stable model use kar rahe hain jo fast hai
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `You are an expert career counselor. Generate a structured step-by-step career roadmap for someone who wants to become a "${targetGoal}". Their current skills are: "${Array.isArray(currentSkills) ? currentSkills.join(', ') : currentSkills}". Provide the response ONLY in structured JSON format containing modules, topics, and estimated timelines. Do not add any markdown formatting like \`\`\`json.`;
 
-    const prompt = `You are an expert career counselor. Generate a structured step-by-step career roadmap for someone who wants to become a "${targetGoal}". Their current skills are: "${Array.isArray(currentSkills) ? currentSkills.join(', ') : currentSkills}". Provide the response ONLY in a valid JSON object string. Contain modules, topics, and estimated timelines. Do not add any markdown block wrappers like backticks or \`\`\`json text, just clean raw stringified JSON code.`;
+    // Direct Fetch API Call (Isme kisi SDK package crash ka darr nahi hota)
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      }
+    );
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let text = response.text().trim();
+    const resData = await response.json();
+    
+    if (!response.ok) {
+      return new Response(JSON.stringify({ error: resData.error?.message || "Gemini API Error" }), { status: response.status, headers });
+    }
 
-    // Kisi bhi kism ke markdown ticks ko makhsoos tareeqay se saaf karne ka safe filter
-    text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/, '').trim();
+    let text = resData.candidates[0].content.parts[0].text.trim();
 
-    // Sahi validation checklist parse test
-    const parsedData = JSON.parse(text);
-    return res.status(200).json(parsedData);
+    // Clean any markdown ticks safely
+    if (text.startsWith("```json")) {
+      text = text.substring(7, text.length - 3).trim();
+    } else if (text.startsWith("```")) {
+      text = text.substring(3, text.length - 3).trim();
+    }
+
+    return new Response(JSON.stringify(JSON.parse(text)), { status: 200, headers });
 
   } catch (error: any) {
-    console.error("Vercel Runtime Error:", error);
-    return res.status(500).json({ error: error.message || "Internal Server Error" });
+    return new Response(JSON.stringify({ error: error.message || "Internal Server Error" }), { status: 500, headers });
   }
 }
