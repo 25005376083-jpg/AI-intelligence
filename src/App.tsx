@@ -266,8 +266,10 @@ const RoadmapView = () => {
   const generate = async () => {
   setLoading(true);
   try {
-    // Yeh direct aapke naye Vercel api folder par request bhejega
-    const res = await fetch('/api/generate-roadmap', {
+    // Yeh automatic check karega ke agar live website hai toh absolute URL hit kare
+    const baseUrl = window.location.hostname === 'localhost' ? '' : 'https://ai-intelligence-theta.vercel.app';
+    
+    const res = await fetch(`${baseUrl}/api/generate-roadmap`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -275,11 +277,16 @@ const RoadmapView = () => {
         currentSkills: currentSkills.split(',').map(s => s.trim()).filter(Boolean)
       })
     });
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
     const resData = await res.json();
     setData(resData);
-  } catch (e) {
-    console.error(e);
-    alert("Roadmap generate karne mein koi masala hua.");
+  } catch (e: any) {
+    console.error("Frontend Error Log:", e);
+    alert(`Roadmap generate karne mein masala hua: ${e.message}`);
   } finally {
     setLoading(false);
   }
