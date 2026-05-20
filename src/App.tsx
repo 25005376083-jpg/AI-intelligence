@@ -266,10 +266,8 @@ const RoadmapView = () => {
   const generate = async () => {
   setLoading(true);
   try {
-    // Yeh automatic check karega ke agar live website hai toh absolute URL hit kare
-    const baseUrl = window.location.hostname === 'localhost' ? '' : 'https://ai-intelligence-theta.vercel.app';
-    
-    const res = await fetch(`${baseUrl}/api/generate-roadmap`, {
+    // Relative path jo Vercel par perfectly resolve hota hai
+    const res = await fetch('/api/generate-roadmap', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -285,7 +283,7 @@ const RoadmapView = () => {
     const resData = await res.json();
     setData(resData);
   } catch (e: any) {
-    console.error("Frontend Error Log:", e);
+    console.error(e);
     alert(`Roadmap generate karne mein masala hua: ${e.message}`);
   } finally {
     setLoading(false);
